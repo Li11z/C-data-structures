@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 /*
  *what is a dynamic array:
@@ -61,7 +62,77 @@ everything else needs to be controled from freeing up space of buffers and more.
 
 
  */
+#define dtype int
+
+struct dynamic_array {
+    dtype *items;
+
+    bool is_size_empty;
+    bool is_capacity_empty;
+
+    bool is_size_full;
+    bool is_capacity_full;
+
+    size_t num_items;
+    size_t size;
+    size_t  capacity;
+};
+
+void setup(struct dynamic_array *arr, size_t size) {
+
+    arr->is_size_empty=true;
+    arr->is_capacity_empty=false;
+
+    arr->is_size_full=false;
+    arr->is_capacity_full=false;
+
+    arr->num_items=0;
+    arr->capacity=size*sizeof(dtype);
+    arr->size=size;
+
+    (*arr).items=malloc(arr->capacity);
+    //note (*arr). is same as arr-> operator
+
+
+}
+
+void add(struct dynamic_array *arr, int idx ,dtype item) {
+
+}
+
 
 int main() {
+
+    //first allow to create the dynamic array, with data type, and intial #of slots
+    struct dynamic_array a;
+    setup(&a, 2);
+
+    //printf("%d\n", a.items[0]);
+
+    //retrieve get() -> var.items[index]
+    a.items[0];
+
+    //add item at specific index add(arr, idx, item) or if you dont add idx, itll put it at the end add(arr,item)
+
+
+
+    //retireve size() -> a.size
+    printf("%d\n", (int)a.size); //or printf(%zu)
+
+    //retrieve capacity -> a.capacity
+    printf("%d\n", (int)a.size); //or printf(%zu)
+
+    //retirve how many items we have in array
+    printf("%d\n", (int)a.num_items);
+
+    //retireve if size isfull() -> a.is_size_full()
+    printf("%d\n", a.is_size_full);
+
+    //retrieve iscapacityfull()
+    printf("%d\n", a.is_capacity_full);
+
+    //can do the same ot check if is empty just say is_capacity/size_empty instead of full
+    printf("%d\n", a.is_capacity_empty);
+
 
 }
