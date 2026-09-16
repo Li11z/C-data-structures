@@ -89,6 +89,7 @@ void da_realloc(struct dynamic_array *arr) {
         arr->size++;
         arr->capacity=arr->size*sizeof(dtype);
         arr->occupied_capacity=arr->size*sizeof(uint8_t);
+        memset(arr->occupied, 0, arr->occupied_capacity);
     }
 
     dtype *item_buffer = realloc(arr->items, arr->capacity * 2 );
@@ -116,7 +117,17 @@ void da_realloc(struct dynamic_array *arr) {
 
 }
 
-// TODO: da_free() function, responsible for freeing the array and making capacity=0 and iscapcity empty= true
+void da_free(struct dynamic_array *arr) {
+    free(arr->items);
+    free(arr->occupied);
+
+    arr->size=0;
+    arr->capacity=0;
+    arr->occupied_capacity=0;
+    arr->is_size_full=false;
+    arr->is_capacity_empty=true;
+    arr->num_items=0;
+}
 
 void setup(struct dynamic_array *arr, size_t size) {
 
