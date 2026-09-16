@@ -151,11 +151,11 @@ void setup(struct dynamic_array *arr, size_t size) {
 void add(struct dynamic_array *arr, int idx,dtype item) {
     //error catching index
     if (idx < 0) {
-        printf("Error: index is negative!!!\n");
+        printf("\n\nError: index is negative!!!\n\n");
         exit(-1);
     }
     if (arr->is_capacity_empty) {
-        printf("Error: Array no longer exists in memory!!!\n");
+        printf("\n\nError: Array no longer exists in memory!!!\n\n");
         exit(-1);
     }
 
@@ -218,11 +218,11 @@ void add(struct dynamic_array *arr, int idx,dtype item) {
 void insert(struct dynamic_array *arr, int idx,dtype item) {
     //error catching index
     if (idx < 0) {
-        printf("Error: index is negative!!!\n");
+        printf("\n\nError: index is negative!!!\n\n");
         exit(-1);
     }
     if (arr->is_capacity_empty) {
-        printf("Error: Array no longer exists in memory!!!\n");
+        printf("\n\nError: Array no longer exists in memory!!!\n\n");
         exit(-1);
     }
 
@@ -261,6 +261,71 @@ void insert(struct dynamic_array *arr, int idx,dtype item) {
     }
 }
 
+//delete() the location completley
+
+//TODO add the delete() function
+// FIXME  when deleting we descrease size -> this means we need to accpet that size and cpacity are not always parallel
+// TODO add a da_shrink_to_fit() that shrinks memory to fit size once more this is a function user can call when they feel its safe
+
+void da_delete(struct dynamic_array *arr, int idx) {
+    //error catching index
+    if (idx < 0) {
+        printf("\n\nError: index is negative!!!\n\n");
+        exit(-1);
+    }
+    if (arr->is_capacity_empty) {
+        printf("\n\nError: Array no longer exists in memory!!!\n\n");
+        exit(-1);
+    }
+    if (arr->size < idx + 1) {
+        printf("\n\nError: Index out of bounds\n\n");
+        exit(-1);
+    }
+    if (arr->occupied[idx] == 0 && idx>=arr->largest_idx) { //technically idx > largest index implies occupied 0
+        printf("\n\nWarning: slot already empty and nothing will cascade down\n\n");
+        return;
+    }
+
+    if (arr->occupied[idx] != 0) {
+        arr->num_items--;
+    }
+
+    if (arr->largest_idx == idx) {
+
+        arr->is_size_full = false;
+        arr->items[idx] = 0 ;
+        arr->occupied[idx] = 0 ;
+
+        if (arr->num_items >= 1) {
+            for (int i = arr->largest_idx; i > 0; i--) {
+                if (arr->occupied[i - 1] == 1) {
+                    arr->largest_idx = i - 1;
+                    break;
+                }
+            }
+        }
+
+        else {
+            arr->largest_idx = 0;
+        }
+
+    }
+    else {
+        for (int i=idx; i < arr->largest_idx; i++) {
+            arr->items[i] = arr->items[i + 1];
+            arr->occupied[i] = arr->occupied[i + 1];
+        }
+
+        arr->is_size_full = false;
+        arr->items[arr->largest_idx]=0;
+        arr->occupied[arr->largest_idx]=0;
+        arr->largest_idx--;
+
+
+    }
+}
+
+//remove() content from slot
 
 int main() {
     //first allow to create the dynamic array, with data type, and intial #of slots
