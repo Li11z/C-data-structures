@@ -73,6 +73,8 @@ everything else needs to be controled from freeing up space of buffers and more.
     float:    printf("%f\n",  (x)),         \
     char:     printf("%c\n",  (x)),         \
     char*:    printf("%s\n",  (x)),         \
+    uint8_t:   printf("%u\n",  (x)),        \
+    size_t:     printf("%zu\n",  (x)),     \
     default:  printf("?\n")                 \
 )
 
@@ -84,181 +86,182 @@ struct dynamic_array {
     uint8_t *occupied;
 
     // is size empty is useless as it suffice to check num_item , if =0 empty, otherwise not empty
-    bool is_capacity_empty; //checks that we freed the space if its true essentially no more space allocated
+    bool is_freed; //checks that we freed the space if its true essentially no more space allocated
 
     bool is_size_full;
-    bool is_capacity_full;
 
     size_t num_items;
     size_t size;
-    size_t capacity;
     size_t largest_idx;
-
-    size_t occupied_capacity;
 };
 
 void print_status(struct dynamic_array *arr) {
-    printf("\n\n"
-    "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-    printf("\ncontent of items:\n");
-    for (int i = 0; i < arr->largest_idx; i++) {
-        PRINT(arr->items[i]);
-        printf("; ");
+    if (arr->is_freed) {
+        printf("\n\nWarning: Array no longer exists in memory!!!\n\n");
+        return;
     }
 
-    printf("\ncontent of occupied:\n");
-    for (int i = 0; i < arr->largest_idx; i++) {
-        PRINT(arr->occupied[i]);
-        printf("; ");
-    }
+    printf("\n\n~~~Content Of Dynamic Array~~~\n"
+        "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 
-    printf("\nLargest Index: %zu\n",arr->largest_idx);
-    printf("Is capacity full: %d\n",arr->is_capacity_full);
-    printf("Is capacity empty: %d\n",arr->is_capacity_empty);
-    printf("Is size full: %d\n",arr->is_size_full);
-    printf("How much memory space/capacity for items: %zu\n",arr->capacity);
-    printf("How much memory space/capacity for occupied: %zu\n",arr->occupied_capacity);
-    printf("How much space/size for items: %zu\n",arr->size);
-    printf("How many items: %zu\n",arr->num_items);
+    if (arr->num_items > 0 ) {
+        printf("\ncontent of items:\n");
+        for (int i = 0; i <= arr->largest_idx; i++) {
+            PRINT(arr->items[i]);
+            printf("; ");
+        }
+
+        printf("\ncontent of occupied:\n");
+        for (int i = 0; i <= arr->largest_idx; i++) {
+            PRINT(arr->occupied[i]);
+            printf("; ");
+        }
+    }
+    else{printf("\nArray is empty no items to be read!\n");}
+
+    printf("\nLargest Index: %zu\n", arr->largest_idx);
+    printf("Has it been Freed: %d\n", arr->is_freed);
+    printf("Is size full: %d\n", arr->is_size_full);
+    printf("How much space/size for items: %zu\n", arr->size);
+    printf("How many items: %zu\n", arr->num_items);
 
     printf("\n"
-    "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n");
-
-
+        "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n");
 }
 
 void da_free(struct dynamic_array *arr) {
+    if (arr->is_freed) {
+        printf("\n\nError: Array no longer exists in memory!!!\n\n");
+        exit(-1);
+    }
+
     free(arr->items);
     free(arr->occupied);
 
+    arr->items=NULL;
+    arr->occupied=NULL;
+
     arr->size = 0;
-    arr->capacity = 0;
-    arr->occupied_capacity = 0;
     arr->is_size_full = false;
-    arr->is_capacity_full=false;
-    arr->is_capacity_empty = true;
+    arr->is_freed = true;
     arr->num_items = 0;
+    arr->largest_idx = 0;
 }
 
 void da_free_to_fit(struct dynamic_array *arr) {
 
-    size_t capacity = arr->capacity;
-    size_t size = arr->size;
-    size_t capacity_to_size = arr->capacity/sizeof(dtype);
-
-    if (capacity_to_size == size) {
-        return;
+    if (arr->is_freed) {
+        printf("\n\nError: Array no longer exists in memory!!!\n\n");
+        exit(-1);
     }
-    else {
-        size_t size_difference = abs(capacity_to_size - size);
 
-        size_t capacity_size_difference = size_difference*sizeof(dtype);
-        size_t occupied_capacity_size_difference = size_difference*sizeof(uint8_t);
+    //size_t capacity = arr->size * sizeof(dtype);
+    //size_t occupied_capacity = arr->size * sizeof(uint8_t);
 
-        dtype *input_buffer = realloc(arr->items, (arr->capacity-capacity_size_difference));
-        uint8_t *occupied_buffer = realloc(arr->occupied, (arr->occupied_capacity - occupied_capacity_size_difference));
+    //logic: arr->size-(arr->size - (arr->largest_idx + 1)) avoided since its longer and can lead to sign issues potentially
+    size_t optimal_size = arr->largest_idx + 1;
 
-        if (input_buffer == NULL || occupied_buffer == NULL) {
-            free(input_buffer);
-            free(occupied_buffer);
-            printf("\nError: realloc failed. Original data preserved.\n");
-            exit(-1);
-        }
+    size_t optimal_capacity = (optimal_size * sizeof(dtype));
+    size_t optimal_occupied_capacity = (optimal_size * sizeof(uint8_t));
 
-        arr->items = input_buffer;
-        arr->occupied = occupied_buffer;
+    dtype *item_buffer = realloc(arr->items, optimal_capacity);
+    uint8_t *occupied_buffer = realloc(arr->occupied, optimal_occupied_capacity);
 
-        arr->capacity =arr->capacity-capacity_size_difference;
-        arr->occupied_capacity= arr->occupied_capacity - occupied_capacity_size_difference;
 
-        if (arr->is_size_full) {
-            arr->is_capacity_full = true;
-        }
+    if (item_buffer == NULL || occupied_buffer == NULL) {
+        fprintf(stderr, "Error: realloc failed. Original data preserved.\n");
+
+        // Decide whether to free and exit, or continue with the original size
+        free(item_buffer);
+        free(occupied_buffer);
+        exit(EXIT_FAILURE);
+    }
+
+    arr->items = item_buffer;
+    arr->occupied = occupied_buffer;
+    arr->size = optimal_size;
+
+    if (arr->num_items==arr->size) {
+        arr->is_size_full = true;
     }
 }
 
 void da_realloc(struct dynamic_array *arr) {
-    if (arr->size == 0) {
-        arr->size++;
-        arr->capacity = arr->size * sizeof(dtype);
-        arr->occupied_capacity = arr->size * sizeof(uint8_t);
-        memset(arr->occupied, 0, arr->occupied_capacity);
-    }
-
-    if (arr->is_capacity_full && arr->is_size_full) {
-        dtype *item_buffer = realloc(arr->items, arr->capacity * 2);
-        uint8_t *occupied_buffer = realloc(arr->occupied, arr->occupied_capacity * 2);
-
-        if (item_buffer == NULL || occupied_buffer == NULL) {
-            fprintf(stderr, "Error: realloc failed. Original data preserved.\n");
-
-            // Decide whether to free and exit, or continue with the original size
-            free(item_buffer);
-            free(occupied_buffer);
-            exit(EXIT_FAILURE);
-        }
-
-        arr->items = item_buffer;
-        arr->occupied = occupied_buffer;
-        memset(&arr->occupied[arr->size], 0, arr->occupied_capacity);
-
-        arr->size *= 2;
-        arr->capacity *= 2;
-
-        arr->occupied_capacity *= 2;
-
-        arr->is_size_full = false;
-        arr->is_capacity_full = false;
-
-    }
-    else if (arr->is_size_full && !arr->is_capacity_full) {
-        size_t capacity_slots = (arr->capacity)/sizeof(dtype);
-        size_t additional_size = sqrt(pow((arr->size)-capacity_slots,2));
-
-        arr->size+=additional_size;
-
-    }
-    else {
-        printf("Error: unexpected condition");
-        print_status(arr);
+    if (arr->is_freed) {
+        printf("\n\nError: Array no longer exists in memory!!!\n\n");
         exit(-1);
     }
+
+    if (arr->size == 0) {
+        arr->size++;
+        //arr->occupied[0]=0;
+        //memset(arr->occupied, 0, occupied_capacity);
+    }
+
+    size_t capacity = arr->size * sizeof(dtype);
+    size_t occupied_capacity = arr->size * sizeof(uint8_t);
+
+    dtype *item_buffer = realloc(arr->items, capacity * 2);
+    uint8_t *occupied_buffer = realloc(arr->occupied, occupied_capacity * 2);
+
+    if (item_buffer == NULL || occupied_buffer == NULL) {
+        fprintf(stderr, "Error: realloc failed. Original data preserved.\n");
+
+        // Decide whether to free and exit, or continue with the original size
+        free(item_buffer);
+        free(occupied_buffer);
+        exit(EXIT_FAILURE);
+    }
+
+    arr->items = item_buffer;
+    arr->occupied = occupied_buffer;
+    memset(&arr->occupied[arr->size], 0, occupied_capacity);
+
+    arr->size *= 2;
+    arr->is_size_full = false;
 }
 
 void setup(struct dynamic_array *arr, size_t size) {
-    arr->is_capacity_empty = false;
-    arr->is_capacity_full = false;
 
+    if (size==0){size++;}//in case user tries to make size=0 and break the malloc
+    arr->is_freed = false;
     arr->is_size_full = false;
 
-
     arr->num_items = 0;
-    arr->capacity = size * sizeof(dtype);
     arr->size = size;
     arr->largest_idx = 0;
 
-    arr->occupied_capacity = size * sizeof(uint8_t);
+    size_t capacity = arr->size * sizeof(dtype);
+    size_t occupied_capacity = arr->size * sizeof(uint8_t);
 
-    (*arr).items = malloc(arr->capacity);
+    (*arr).items = malloc(capacity);
+    arr->occupied = malloc(occupied_capacity);
 
-    arr->occupied = malloc(arr->occupied_capacity);
-    memset(arr->occupied, 0, arr->occupied_capacity);
+    if (arr->items == NULL || arr->occupied == NULL) {
+        free(arr->items);
+        free(arr->occupied);
+
+        printf("\nError malloc failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    memset(arr->occupied, 0, occupied_capacity);
     //note (*arr). is same as arr-> operator
 }
 
 void add(struct dynamic_array *arr, int idx,dtype item) {
     //error catching index
+    if (arr->is_freed) {
+        printf("\n\nError: Array no longer exists in memory!!!\n\n");
+        exit(-1);
+    }
     if (idx < 0) {
         printf("\n\nError: index is negative!!!\n\n");
         exit(-1);
     }
-    if (arr->is_capacity_empty) {
-        printf("\n\nError: Array no longer exists in memory!!!\n\n");
-        exit(-1);
-    }
 
     //overflow check
-    if (arr->is_size_full || arr->is_capacity_full) {
+    if (arr->is_size_full) {
         da_realloc(arr);
     }
 
@@ -268,7 +271,7 @@ void add(struct dynamic_array *arr, int idx,dtype item) {
         do {
             da_realloc(arr);
             k++;
-            if (k >= 3) {
+            if (k >= 4) {//if we run it more than 3 times break, we essentially stop at the 4th loop, only 3 loops are allowed, this is to maintain proper coding principles, yes 3 is random but it just feels oddly apropaite, can be repalce dor removed at later time
                 printf("Error: index way out of bound: idx goal: %d, OG array size: %zu !!!\n", idx, current_size);
                 exit(-1);
             }
@@ -315,17 +318,17 @@ void add(struct dynamic_array *arr, int idx,dtype item) {
 
 void insert(struct dynamic_array *arr, int idx,dtype item) {
     //error catching index
+    if (arr->is_freed) {
+        printf("\n\nError: Array no longer exists in memory!!!\n\n");
+        exit(-1);
+    }
     if (idx < 0) {
         printf("\n\nError: index is negative!!!\n\n");
         exit(-1);
     }
-    if (arr->is_capacity_empty) {
-        printf("\n\nError: Array no longer exists in memory!!!\n\n");
-        exit(-1);
-    }
 
     //overflow check
-    if (arr->is_size_full || arr->is_capacity_full) {
+    if (arr->is_size_full) {
         da_realloc(arr);
     }
 
@@ -335,7 +338,7 @@ void insert(struct dynamic_array *arr, int idx,dtype item) {
         do {
             da_realloc(arr);
             k++;
-            if (k >= 3) {
+            if (k >= 4) {
                 printf("Error: index way out of bound: idx goal: %d, OG array size: %zu !!!\n", idx, current_size);
                 exit(-1);
             }
@@ -362,33 +365,49 @@ void insert(struct dynamic_array *arr, int idx,dtype item) {
 //delete() the location completley
 void da_delete(struct dynamic_array *arr, int idx) {
     //error catching index
-    if (idx < 0) {
-        printf("\n\nError: index is negative!!!\n\n");
+    if (arr->is_freed) {
+        printf("\n\nError: Array no longer exists in memory!!!\n\n");
         exit(-1);
     }
-    if (arr->is_capacity_empty) {
-        printf("\n\nError: Array no longer exists in memory!!!\n\n");
+    if (idx < 0) {
+        printf("\n\nError: index is negative!!!\n\n");
         exit(-1);
     }
     if (arr->size < idx + 1) {
         printf("\n\nError: Index out of bounds\n\n");
         exit(-1);
     }
-    if (arr->occupied[idx] == 0 && idx>=arr->largest_idx) { //technically idx > largest index implies occupied 0
-        printf("\n\nWarning: slot already empty and nothing will cascade down\n\n");
+    if (arr->size == 1) {
+        if (arr->occupied[0]!=0) {
+            arr->items[0] = 0;
+            arr->occupied[0] = 0;
+            arr->num_items = 0;
+            arr->is_size_full = false;
+        }
+        printf("Warning cant delete/decrease size of array if only one slot available.\nSlot is cleared but size remains 1\nIf wanting to delete use da_free()");
+        return;
+    }
+    if (arr->occupied[idx] == 0 && idx >= arr->largest_idx) {
+        //technically idx > largest index implies occupied 0
+        printf("\n\nWarning: slot already empty and nothing will cascade down, simply deleting slot\n\n");
+        arr->size--;
+
+        if (arr->num_items == arr->size) {
+            arr->is_size_full = true;
+        }
         return;
     }
 
     if (arr->occupied[idx] != 0) {
         arr->num_items--;
-        arr->size--;
+        //in this situation is_size_full shouldnt change
     }
 
     if (arr->largest_idx == idx) {
-
-
-        arr->items[idx] = 0 ;
-        arr->occupied[idx] = 0 ;
+        //since we know largest idx is by definition occupied no need for a sizefull checkup it remains the same
+        arr->items[idx] = 0;
+        arr->occupied[idx] = 0;
+        arr->size--;
 
         if (arr->num_items >= 1) {
             for (int i = arr->largest_idx; i > 0; i--) {
@@ -397,25 +416,26 @@ void da_delete(struct dynamic_array *arr, int idx) {
                     break;
                 }
             }
-        }
-
-        else {
+        } else {
             arr->largest_idx = 0;
         }
 
-    }
-    else {
-        for (int i=idx; i < arr->largest_idx; i++) {
+    } else {
+
+        if (arr->occupied[idx] == 0 && (arr->num_items == arr->size-1)) {
+            arr->is_size_full = true;
+        }
+
+        for (int i = idx; i < arr->largest_idx; i++) {
             arr->items[i] = arr->items[i + 1];
             arr->occupied[i] = arr->occupied[i + 1];
         }
 
 
-        arr->items[arr->largest_idx]=0;
-        arr->occupied[arr->largest_idx]=0;
+        arr->items[arr->largest_idx] = 0;
+        arr->occupied[arr->largest_idx] = 0;
         arr->largest_idx--;
-
-
+        arr->size--;
     }
 }
 
@@ -455,5 +475,5 @@ int main() {
 
 
     //can do the same ot check if is empty just say is_capacity/size_empty instead of full
-    printf("%d\n", a.is_capacity_empty);
+    printf("%d\n", a.is_freed);
 }
