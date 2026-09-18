@@ -57,3 +57,14 @@ A heap-allocated, growable array of `dtype` that supports **holes**. Two paralle
 - **Composition** — `da_copy`, `da_extend`, `da_slice`, `da_equals`.
 - **Iteration** — `da_foreach`, `da_map`, `da_filter`, `da_to_string`.
 - **Infrastructure** — status codes instead of `exit()`.
+
+---
+## Stack: `Stack.c`
+
+---
+## Linked List: `Linked_List.c`
+
+---
+## HashMap: `Hash_Map.c`
+
+---
