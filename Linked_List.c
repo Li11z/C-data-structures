@@ -87,6 +87,34 @@ void setup(struct LinkedList *list) {
     list->is_freed = false;
 }
 
+//adding node at head
+void push(struct LinkedList *list, dtype x) {
+    if (list->is_freed == true) {
+        printf("\n\nError list already freed, no longer exists!!!\n\n");
+        exit(-1);
+    }
+    if (list->size == 0) {
+        struct Node node;
+        node.data = x;
+        node.next = NULL;
+        node.prev = NULL;
+
+        list->head = &node;
+        list->tail = &node;
+        list->size++;
+    }
+    else {
+        struct Node node;
+        node.data = x;
+        node.prev = NULL; //can be changed to tail if we ever want to make a circular doubly linked list
+        node.next = list->head;
+
+        list->head->prev = &node;
+        list->head = &node;
+        list->size++;
+    }
+}
+
 int main() {
 
     //setting up the list:
