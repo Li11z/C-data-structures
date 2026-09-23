@@ -56,7 +56,7 @@ more functions to come
     default:  printf("?\n")                 \
 )
 
-#define dtype int
+#define dtype char
 
 struct Node {
     dtype data;
@@ -87,6 +87,25 @@ void setup(struct LinkedList *list) {
     list->is_freed = false;
 }
 
+void free_LL(struct LinkedList *list) {
+    if (list == NULL) {
+        printf("\n\nError: List is NULL!!!\n\n");
+        return;
+    }
+    struct Node *node_buffer;
+    while (list->head != list->tail) {
+        node_buffer = list->head->next;
+        free(list->head);
+        list->head = node_buffer;
+    }
+    free(list->tail);
+
+    list->head = NULL;
+    list->tail = NULL;
+    list->size = 0;
+
+    free(list);
+}
 
 struct Node *get_node_private(struct LinkedList *list, int idx) {
     //private is essentially normal get_node without guard rails, since this will be a function called by other function who already have guard rails
@@ -100,14 +119,12 @@ struct Node *get_node_private(struct LinkedList *list, int idx) {
         // logic is (list->size - 1) - idx +1
         starting_point = 0;
         closer_distance = idx + 1;
-    }
-
-    else if (list->size - idx < idx + 1) {
+    } else if (list->size - idx < idx + 1) {
         starting_point = 1;
         closer_distance = list->size - idx;
     }
 
-    if (abs(list->finger_idx - idx) + 1 < closer_distance && list->finger != NULL) {
+    if (abs((int) (list->finger_idx) - idx) + 1 < closer_distance && list->finger != NULL) {
         starting_point = 2;
         closer_distance = abs(list->finger_idx - idx) + 1;
     }
@@ -115,26 +132,23 @@ struct Node *get_node_private(struct LinkedList *list, int idx) {
 
     if (starting_point == 0) {
         node_buffer = list->head;
-        for (int i=0; i<idx; i++) {
+        for (int i = 0; i < idx; i++) {
             node_buffer = node_buffer->next;
         }
-    }
-    else if (starting_point == 1) {
+    } else if (starting_point == 1) {
         node_buffer = list->tail;
-        for (int i=(int)(list->size)-1; i>idx; i--) {
+        for (int i = (int) (list->size) - 1; i > idx; i--) {
             node_buffer = node_buffer->prev;
         }
-    }
-    else{
+    } else {
         if (list->finger_idx > idx) {
             node_buffer = list->finger;
-            for (int i=(int)(list->finger_idx); i>idx; i--) {
+            for (int i = (int) (list->finger_idx); i > idx; i--) {
                 node_buffer = node_buffer->prev;
             }
-        }
-        else {
+        } else {
             node_buffer = list->finger;
-            for (int i=(int)(list->finger_idx); i<idx; i++) {
+            for (int i = (int) (list->finger_idx); i < idx; i++) {
                 node_buffer = node_buffer->next;
             }
         }
@@ -162,18 +176,15 @@ struct Node *get_node(struct LinkedList *list, int idx) {
     if (list->size == 0 && idx != 0) {
         printf("\n\nError: Index Out Of Bounds!!!\n\n");
         exit(-1);
-    }
-    else if(list->size == 0 && idx == 0) {
+    } else if (list->size == 0 && idx == 0) {
         printf("Warning: There is nothing");
     }
 
     if (idx == 0) {
         return list->head;
-    }
-    else if (idx == list->size) {
+    } else if (idx == list->size) {
         return list->tail;
-    }
-    else if (list->finger_idx == idx && list->finger != NULL) {
+    } else if (list->finger_idx == idx && list->finger != NULL) {
         return list->finger;
     }
 
@@ -186,9 +197,7 @@ struct Node *get_node(struct LinkedList *list, int idx) {
         // logic is (list->size - 1) - idx +1
         starting_point = 0;
         closer_distance = idx + 1;
-    }
-
-    else if (list->size - idx < idx + 1) {
+    } else if (list->size - idx < idx + 1) {
         starting_point = 1;
         closer_distance = list->size - idx;
     }
@@ -201,26 +210,23 @@ struct Node *get_node(struct LinkedList *list, int idx) {
 
     if (starting_point == 0) {
         node_buffer = list->head;
-        for (int i=0; i<idx; i++) {
+        for (int i = 0; i < idx; i++) {
             node_buffer = node_buffer->next;
         }
-    }
-    else if (starting_point == 1) {
+    } else if (starting_point == 1) {
         node_buffer = list->tail;
-        for (int i=(int)(list->size)-1; i>idx; i--) {
+        for (int i = (int) (list->size) - 1; i > idx; i--) {
             node_buffer = node_buffer->prev;
         }
-    }
-    else{
+    } else {
         if (list->finger_idx > idx) {
             node_buffer = list->finger;
-            for (int i=(int)(list->finger_idx); i>idx; i--) {
+            for (int i = (int) (list->finger_idx); i > idx; i--) {
                 node_buffer = node_buffer->prev;
             }
-        }
-        else {
+        } else {
             node_buffer = list->finger;
-            for (int i=(int)(list->finger_idx); i<idx; i++) {
+            for (int i = (int) (list->finger_idx); i < idx; i++) {
                 node_buffer = node_buffer->next;
             }
         }
@@ -228,8 +234,6 @@ struct Node *get_node(struct LinkedList *list, int idx) {
 
     return node_buffer;
 }
-
-
 
 //adding node at head
 void push(struct LinkedList *list, dtype x) {
@@ -275,8 +279,7 @@ void offer(struct LinkedList *list, dtype x) {
         list->head = node;
         list->tail = node;
         list->size++;
-    }
-    else {
+    } else {
         struct Node *node = malloc(sizeof *node);
         node->data = x;
         node->next = NULL; //can be changed to tail if we ever want to make a circular doubly linked list
@@ -305,8 +308,7 @@ void add(struct LinkedList *list, int idx,dtype x) {
     if (list->size == 0 && idx != 0) {
         printf("\n\nError: Index Out Of Bounds!!!\n\n");
         exit(-1);
-    }
-    else if(list->size == 0 && idx == 0){
+    } else if (list->size == 0 && idx == 0) {
         struct Node *node = malloc(sizeof *node);
         node->data = x;
         node->next = NULL;
@@ -321,11 +323,9 @@ void add(struct LinkedList *list, int idx,dtype x) {
 
     if (idx == 0) {
         push(list, x);
-    }
-    else if (idx == list->size) {
+    } else if (idx == list->size-1) {
         offer(list, x);
-    }
-    else if (list->finger_idx == idx && list->finger != NULL) {
+    } else if (list->finger_idx == idx && list->finger != NULL) {
         struct Node *node = malloc(sizeof *node);
         node->data = x;
         node->next = list->finger;
@@ -340,14 +340,12 @@ void add(struct LinkedList *list, int idx,dtype x) {
         list->finger = node;
 
         return;
-    }
-
-    else {
+    } else {
         //idx not head or tail or finger
 
         struct Node *node_buffer = get_node_private(list, idx);
 
-        struct Node *node=malloc(sizeof(struct Node));
+        struct Node *node = malloc(sizeof(struct Node));
 
         node->data = x;
         node->next = node_buffer;
@@ -361,6 +359,135 @@ void add(struct LinkedList *list, int idx,dtype x) {
     }
 }
 
+//pop get and remove+free element at tail
+dtype pop(struct LinkedList *list) {
+    if (list->is_freed == true) {
+        printf("\n\nError list already freed, no longer exists!!!\n\n");
+        exit(-1);
+    }
+    if (list->size == 0) {
+        printf("\n\nWarning: Nothing to Fetch!!!\n\n");
+        return -1;
+    }
+
+    dtype return_value = list->tail->data;
+    list->tail = list->tail->prev;
+    list->tail->next = NULL;
+    list->size--;
+    free(list->tail);
+
+    return return_value;
+}
+
+//poll get and remove+free element at head
+dtype poll(struct LinkedList *list) {
+    if (list->is_freed == true) {
+        printf("\n\nError list already freed, no longer exists!!!\n\n");
+        exit(-1);
+    }
+    if (list->size == 0) {
+        printf("\n\nWarning: Nothing to Fetch!!!\n\n");
+        return -1;
+    }
+
+    dtype return_value = list->head->data;
+    list->head = list->head->next;
+    list->head->next = NULL;
+    list->size--;
+    free(list->head);
+
+    return return_value;
+}
+
+//pop(idx) get and remove+free element at specific index
+dtype pop_idx(struct LinkedList *list, int idx) {
+    if (list->is_freed == true) {
+        printf("\n\nError list already freed, no longer exists!!!\n\n");
+        exit(-1);
+    }
+    if (idx < 0) {
+        printf("\n\nError: Index Out Of Bounds!!!\n\n");
+        exit(-1);
+    }
+    if (idx > list->size) {
+        printf("\n\nError: Index Out Of Bounds!!!\n\n");
+        exit(-1);
+    }
+
+    if (list->size == 0) {
+        printf("\n\nWarning: Nothing to pop!!!\n\n");
+    }
+
+    dtype return_value;
+
+    if (idx == 0) {
+        poll(list);
+    } else if (idx == list->size-1) {
+        pop(list);
+    } else if (list->finger_idx == idx && list->finger != NULL) {
+        return_value = list->finger->data;
+
+
+        list->finger->prev->next = list->finger->next;
+        list->finger->next->prev = list->finger->prev;
+
+        list->size--;
+
+        list->finger_idx = 0;
+        list->finger = NULL;
+
+        free(list->finger);
+
+        return return_value;
+    } else {
+        //idx not head or tail or finger
+
+        struct Node *node_buffer = get_node_private(list, idx);
+
+        return_value = node_buffer->data;
+
+        node_buffer->prev->next = node_buffer->next;
+        node_buffer->next->prev = node_buffer->prev;
+
+        list->size--;
+
+
+        node_buffer = NULL;
+
+        free(node_buffer);
+
+        return return_value;
+    }
+}
+
+//get_h() get element at head
+dtype get_h(struct LinkedList *list) {
+
+    return list->head->data;
+}
+
+//get_t() get element at tail
+dtype get_t(struct LinkedList *list) {
+
+    return list->tail->data;
+}
+
+//get_idx() get element at idx
+dtype get_idx(struct LinkedList *list, int idx) {
+
+    if (idx == 0) {
+        return get_h(list);
+    }
+    else if (idx == list->size-1) {
+        return get_t(list);
+    }
+    else if (list->finger_idx == idx && list->finger != NULL) {
+        return list->finger->data;
+    }
+    else {
+        return get_node_private(list, idx)->data;
+    }
+}
 
 int main() {
     //setting up the list:
@@ -379,5 +506,4 @@ int main() {
     add(&list, 2, 4);
     printf("\n %d", list.tail->data);
     printf("\n %d", list.tail->prev->data);
-
 }
